@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { GptAgent } from '../utils/GptAgent';
+import supabase from '../lib/supabase';
 
-const { FiKey, FiX, FiCheck, FiAlertCircle, FiEye, FiEyeOff, FiExternalLink } = FiIcons;
+const { FiKey, FiX, FiCheck, FiAlertCircle, FiInfo, FiExternalLink } = FiIcons;
 
 const GptSetup = ({ isOpen, onClose, onSuccess }) => {
-  const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [showKey, setShowKey] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -20,21 +19,12 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
   }, [isOpen]);
 
   const handleSetup = async () => {
-    if (!apiKey.trim()) {
-      setError('Please enter your OpenAI API key');
-      return;
-    }
-
-    if (!apiKey.startsWith('sk-')) {
-      setError('OpenAI API keys should start with "sk-"');
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
-
-      await GptAgent.initialize(apiKey);
+      
+      // Initialize without API key - now handled by Edge Functions
+      await GptAgent.initialize();
       
       setSuccess(true);
       setIsInitialized(true);
@@ -43,18 +33,11 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
         onSuccess && onSuccess();
         onClose();
         setSuccess(false);
-        setApiKey('');
       }, 2000);
     } catch (err) {
-      setError(err.message || 'Failed to initialize OpenAI API');
+      setError(err.message || 'Failed to initialize GPT integration');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSetup();
     }
   };
 
@@ -113,40 +96,19 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
                 <>
                   <div className="mb-6">
                     <p className="text-gray-600 mb-4">
-                      Connect your OpenAI API key to unlock powerful AI-powered content generation for your landing pages.
+                      Connect to our secure OpenAI integration to unlock powerful AI-powered content generation for your landing pages.
                     </p>
                     
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <h4 className="font-medium text-blue-900 mb-2">How to get your API key:</h4>
-                      <ol className="text-sm text-blue-800 space-y-1">
-                        <li>1. Visit <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center">platform.openai.com/api-keys <SafeIcon icon={FiExternalLink} className="w-3 h-3 ml-1" /></a></li>
-                        <li>2. Click "Create new secret key"</li>
-                        <li>3. Copy the key and paste it below</li>
-                      </ol>
-                    </div>
-                  </div>
-
-                  {/* API Key Input */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      OpenAI API Key
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showKey ? 'text' : 'password'}
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="sk-..."
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowKey(!showKey)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                      >
-                        <SafeIcon icon={showKey ? FiEyeOff : FiEye} className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-start">
+                        <SafeIcon icon={FiInfo} className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-blue-800 mb-1">Secure Server-Side Integration</h4>
+                          <p className="text-sm text-blue-700">
+                            Our system uses secure server-side processing to protect your data. No API keys are stored in your browser.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -155,9 +117,9 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
                     <div className="flex items-start">
                       <SafeIcon icon={FiAlertCircle} className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-yellow-800 mb-1">Security Notice</h4>
+                        <h4 className="font-medium text-yellow-800 mb-1">Enhanced Security</h4>
                         <p className="text-sm text-yellow-700">
-                          Your API key is stored securely in your browser and encrypted in our database. We never share your key with third parties.
+                          Our secure implementation uses Supabase Edge Functions to handle all API requests server-side, ensuring your data remains protected.
                         </p>
                       </div>
                     </div>
@@ -190,11 +152,9 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
                     </button>
                     <button
                       onClick={handleSetup}
-                      disabled={isLoading || !apiKey.trim()}
+                      disabled={isLoading}
                       className={`flex-1 px-4 py-2 rounded-lg text-white font-medium flex items-center justify-center ${
-                        isLoading || !apiKey.trim()
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-purple-600 hover:bg-purple-700'
+                        isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
                       } transition-colors`}
                     >
                       {isLoading ? (
@@ -205,7 +165,7 @@ const GptSetup = ({ isOpen, onClose, onSuccess }) => {
                       ) : (
                         <>
                           <SafeIcon icon={FiCheck} className="w-4 h-4 mr-2" />
-                          Connect GPT
+                          Enable GPT
                         </>
                       )}
                     </button>
