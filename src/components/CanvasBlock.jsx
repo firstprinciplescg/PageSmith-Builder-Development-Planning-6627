@@ -2,23 +2,26 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
+import GptAssistant from './GptAssistant';
 
 const { FiEdit3, FiTrash2, FiChevronUp, FiChevronDown, FiZap, FiCode } = FiIcons;
 
-const CanvasBlock = ({ 
-  block, 
-  index, 
-  isSelected, 
-  isFirst, 
-  isLast, 
-  onSelect, 
-  onUpdate, 
-  onDelete, 
+const CanvasBlock = ({
+  block,
+  index,
+  isSelected,
+  isFirst,
+  isLast,
+  onSelect,
+  onUpdate,
+  onDelete,
   onMove,
-  gptEnabled 
+  gptEnabled
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(block.content || {});
+  const [isGptOpen, setIsGptOpen] = useState(false);
+  const [activeField, setActiveField] = useState(null);
 
   const handleContentUpdate = (field, value) => {
     const newContent = { ...editableContent, [field]: value };
@@ -27,9 +30,25 @@ const CanvasBlock = ({
   };
 
   const handleGptAssist = (field) => {
-    // GPT integration placeholder
-    console.log('GPT assist for field:', field);
-    // This will be implemented in gpt-agent.js
+    if (gptEnabled) {
+      setActiveField(field);
+      setIsGptOpen(true);
+    } else {
+      console.log('GPT is disabled. Enable it from the toolbar.');
+    }
+  };
+
+  const handleApplyGptContent = (content) => {
+    if (activeField) {
+      handleContentUpdate(activeField, content);
+    }
+  };
+
+  const getInitialContentForGpt = () => {
+    if (activeField && editableContent[activeField]) {
+      return editableContent[activeField];
+    }
+    return '';
   };
 
   return (
@@ -40,14 +59,16 @@ const CanvasBlock = ({
       onClick={onSelect}
     >
       {/* Block Toolbar */}
-      <div className={`absolute top-2 right-2 z-10 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ${
-        isSelected ? 'opacity-100' : ''
-      }`}>
+      <div
+        className={`absolute top-2 right-2 z-10 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+          isSelected ? 'opacity-100' : ''
+        }`}
+      >
         {gptEnabled && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleGptAssist('content');
+              handleGptAssist('h1');
             }}
             className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
             title="GPT Assist"
@@ -55,7 +76,7 @@ const CanvasBlock = ({
             <SafeIcon icon={FiZap} className="w-4 h-4" />
           </button>
         )}
-        
+
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -112,6 +133,7 @@ const CanvasBlock = ({
             block={block}
             content={editableContent}
             onUpdate={handleContentUpdate}
+            onGptAssist={gptEnabled ? handleGptAssist : null}
           />
         ) : (
           <div dangerouslySetInnerHTML={{ __html: block.html }} />
@@ -126,21 +148,42 @@ const CanvasBlock = ({
           className="absolute inset-0 border-2 border-primary-500 rounded-lg pointer-events-none"
         />
       )}
+
+      {/* GPT Assistant Modal */}
+      <GptAssistant
+        isOpen={isGptOpen}
+        onClose={() => setIsGptOpen(false)}
+        blockType={block.category}
+        onApplyContent={handleApplyGptContent}
+        initialContent={getInitialContentForGpt()}
+      />
     </div>
   );
 };
 
-// Simple block editor component
-const BlockEditor = ({ block, content, onUpdate }) => {
+// Block editor component with GPT integration
+const BlockEditor = ({ block, content, onUpdate, onGptAssist }) => {
   return (
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
       <h4 className="font-medium text-gray-900">Edit {block.name}</h4>
       
       {block.editableFields?.map((field) => (
         <div key={field.selector} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            {field.label}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              {field.label}
+            </label>
+            {onGptAssist && (
+              <button
+                onClick={() => onGptAssist(field.selector)}
+                className="inline-flex items-center text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+              >
+                <SafeIcon icon={FiZap} className="w-3 h-3 mr-1" />
+                AI Write
+              </button>
+            )}
+          </div>
+          
           {field.type === 'text' ? (
             <input
               type="text"

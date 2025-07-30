@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "openai": "^4.20.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.0",
@@ -19,7 +21,7 @@
     "@codemirror/view": "^6.26.3",
     "@codemirror/lang-html": "^6.4.8",
     "@codemirror/lang-css": "^6.2.1",
-    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/lang-javascript": "^6.2.1",
     "@codemirror/theme-one-dark": "^6.1.2"
   },
   "devDependencies": {
